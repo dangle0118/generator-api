@@ -242,6 +242,14 @@ module.exports = yeoman.Base.extend({
                 // console.log(util.inspect(service, false, null));
 
                 vm.fs.copyTpl(
+                    vm.templatePath('models/index.js'),
+                    vm.destinationPath('models/' + service.service + '.model.js'), {
+                        name: service.service,
+                        models: service.processedData.models
+                    }
+                );
+
+                vm.fs.copyTpl(
                     vm.templatePath('controllers/index.js'),
                     vm.destinationPath('controllers/' + service.service + '.controller.js'), {
                         name: service.service,
