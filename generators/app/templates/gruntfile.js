@@ -1,5 +1,7 @@
 'use strict';
 
+var path = require('path');
+
 module.exports = function(grunt) {
 
 	// Unified Watch Object
@@ -28,7 +30,7 @@ module.exports = function(grunt) {
 	        target: watchFiles.serverJS
 	    },
 		clean: {
-		  build: ['dist'],
+		  build: ['target'],
 		},
 		babel: {
 			options: {
@@ -39,17 +41,17 @@ module.exports = function(grunt) {
 				files: [{
 					expand: true,
 					src: watchFiles.serverJS,
-					dest: 'target/src/',
-					ext: '.js'
+					dest: 'target/src/'
 				}]
 			}
 		},
 
 		nodemon: {
 			dev: {
-				script: 'target/src/server.js',
+				script: 'server.js',
 				options: {
 					nodeArgs: ['--debug'],
+					cwd: path.resolve('./target/src'),
 					ext: 'js,html',
 					watch: watchFiles.buildJS,
 					ignore: ['node_modules/**'],

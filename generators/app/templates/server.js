@@ -10,9 +10,6 @@ var db = mongoose.connect(config.db.uri, config.db.options, (err) => {
 	}
 });
 
-// Globbing model files
-// require('./app/models/wishlist');
-
 var app = new ExpressApp(db);
 
 app.listen(config.port);

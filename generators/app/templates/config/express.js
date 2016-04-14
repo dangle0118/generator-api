@@ -4,13 +4,19 @@ import methodOverride from 'method-override';
 import flash from 'connect-flash';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
-import router from '../app/router';
+import * as utils from './utils';
+import path from 'path';
 
 export default class ExpressApp {
 	app;
 
 	constructor(db) {
 		this.app = express();
+
+		utils.getGlobbedFiles('./app/models/**/*.js')
+		.forEach((modelPath) => {
+			require(path.resolve(modelPath));
+		});
 
 		this.app.set('showStackError', true);
 
@@ -34,7 +40,11 @@ export default class ExpressApp {
 
 		this.app.use(flash());
 
-		router(this.app);
+		// Globbing routing files
+		utils.getGlobbedFiles('./app/routes/**/*.js')
+		.forEach((routePath) => {
+			require(path.resolve(routePath)).default(this.app);
+		});
 	}
 
 	listen(port) {

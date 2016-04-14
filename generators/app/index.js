@@ -305,6 +305,11 @@ module.exports = yeoman.Base.extend({
                 }
             );
 
+            this.fs.copy(
+                this.templatePath('config/utils.js'),
+                this.destinationPath('config/utils.js')
+            );
+
             this.fs.copyTpl(
                 this.templatePath('config/config.js'),
                 this.destinationPath('config/config.js'), {
@@ -342,7 +347,7 @@ module.exports = yeoman.Base.extend({
 
         //Install Dependencies
         install: function() {
-            // this.npmInstall();
+            this.npmInstall();
         }
     }
 });
