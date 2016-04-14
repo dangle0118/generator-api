@@ -174,8 +174,14 @@ module.exports = yeoman.Base.extend({
 
     //Configurations will be loaded here.
     prompting: {
-        // appGeneral: function() {
-        //     var done = this.async();
+        appGeneral: function() {
+            var done = this.async();
+            this.props = {};
+            this.props.app = {
+                name: 'wishlist',
+                description: ''
+            };
+            done();
 
         //     this.prompt([
         //         {
@@ -195,9 +201,9 @@ module.exports = yeoman.Base.extend({
         //         this.log(answers.name);
         //         done();
         //     }.bind(this));
-        // },
+        },
         ramlLocation: function() {
-            var done = this.async();
+            var done = this.async();            
             this.prompt({
                 name: 'ramlDir',
                 message: 'Location to raml folder (default to current location):',
@@ -209,7 +215,6 @@ module.exports = yeoman.Base.extend({
                     return true;
                 }
             }, function(answers) {
-                this.props = {};
                 this.props.ramlDir = scanForRamlFile(answers.ramlDir);
                 done();
             }.bind(this));
@@ -251,7 +256,7 @@ module.exports = yeoman.Base.extend({
     configuring: function() {
         _.each(this.props.raml, function(raml) {
             raml.processedData = processRamlFile(raml.data, raml.service);
-        })
+        });
     },
 
     //Writing Logic here
@@ -261,20 +266,16 @@ module.exports = yeoman.Base.extend({
             this.fs.copyTpl(
                 this.templatePath('package.json'),
                 this.destinationPath('package.json'), {
-                    // name: this.props.app.name,
-                    // description: this.props.app.description
-                    name: '',
-                    description: ''
+                    name: this.props.app.name,
+                    description: this.props.app.description
                 }
             );
 
             this.fs.copyTpl(
                 this.templatePath('gruntfile.js'),
                 this.destinationPath('gruntfile.js'), {
-                    // name: this.props.app.name,
-                    // description: this.props.app.description
-                    name: '',
-                    description: ''
+                    name: this.props.app.name,
+                    description: this.props.app.description
                 }
             );
 
@@ -300,16 +301,14 @@ module.exports = yeoman.Base.extend({
             this.fs.copyTpl(
                 this.templatePath('config/express.js'),
                 this.destinationPath('config/express.js'), {
-                    // name: this.props.app.name
-                    name: 'wishlist'
+                    name: this.props.app.name
                 }
             );
 
             this.fs.copyTpl(
                 this.templatePath('config/config.js'),
                 this.destinationPath('config/config.js'), {
-                    // name: this.props.app.name
-                    name: 'wishlist'
+                    name: this.props.app.name
                 }
             );
             
