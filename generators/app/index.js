@@ -3,7 +3,6 @@ var yeoman = require('yeoman-generator');
 var chalk = require('chalk');
 var yosay = require('yosay');
 var path = require('path');
-var async = require('async');
 var glob = require('glob');
 var raml = require('raml-parser');
 var _ = require('lodash');
@@ -54,12 +53,6 @@ function processRoutes(resource, uri) {
 
     var data = null;
     if (!!resource.methods) {
-        // var methods = _.map(resource.methods, function(method) {
-        //     return {
-        //         method: method.method,
-        //         description: method.description,
-        //     }
-        // })
         data = {
             uri: uri,
             methods: resource.methods
@@ -108,6 +101,44 @@ function processController(resource) {
     return data;
 }
 
+
+function processAttributes(attrs) {
+    function convertValue(value) {
+        switch(value) {
+            case 'string': return 'String';
+            case 'object': return '{}';
+            case 'id': return 'Schema.ObjectId';
+            case 'date': return 'Date';
+            case 'date.now': return 'Date.now()';
+            case 'boolean': return 'Boolean';
+            case 'number': return 'Number';
+            default: return value
+        };
+    }
+
+    return _.reduce(_.keys(attrs), function(result, key) {
+        result[key] = convertValue(attrs[key]);
+        return result;
+    }, {});
+}
+
+function processProperties(properties) {
+    return _.reduce(_.keys(properties), function(result, key) {
+        result[key] = processAttributes(properties[key]);
+        return result;
+    }, {});
+}
+
+function processModel(name, schema) {
+    var data = JSON.parse(schema.replace(/(\r\n|\n|\r|)/gm,''));
+    delete data.properties.id;
+    return {
+        name: name,
+        schemaName: _.capitalize(name),
+        properties: processProperties(data.properties)
+    };
+}
+
 function processRamlFile(raml) {
     raml.baseUri = raml.baseUri.replace('{version}', raml.version);
 
@@ -123,11 +154,18 @@ function processRamlFile(raml) {
         controllers = _.concat(controllers, processController(resource));
     });
 
-    console.log('controller', controllers);
+    //process Models
+    var models = [];
+    _.each(raml.schemas, function(schema) {
+        _.each(_.toPairs(schema), function(collection) {
+            models = _.concat(models, processModel(collection[0], collection[1]));
+        });
+    });
 
     return {
         routes: routes,
-        controllers: controllers
+        controllers: controllers,
+        models: models
     };
 }
 
@@ -219,58 +257,88 @@ module.exports = yeoman.Base.extend({
     //Writing Logic here
     writing: {
         //Copy the configuration files
-        // config: function() {
-        //     this.fs.copyTpl(
-        //         this.templatePath('package.json'),
-        //         this.destinationPath('package.json'), {
-        //             name: this.props.app.name,
-        //             description: this.props.app.description
-        //         }
-        //     );
-        // },
+        config: function() {
+            this.fs.copyTpl(
+                this.templatePath('package.json'),
+                this.destinationPath('package.json'), {
+                    // name: this.props.app.name,
+                    // description: this.props.app.description
+                    name: '',
+                    description: ''
+                }
+            );
+
+            this.fs.copyTpl(
+                this.templatePath('gruntfile.js'),
+                this.destinationPath('gruntfile.js'), {
+                    // name: this.props.app.name,
+                    // description: this.props.app.description
+                    name: '',
+                    description: ''
+                }
+            );
+
+            this.fs.copy(
+                this.templatePath('._eslintrc'),
+                this.destinationPath('.eslintrc')
+            );
+
+             this.fs.copy(
+                this.templatePath('._gitignore'),
+                this.destinationPath('.gitignore')
+            );
+        },
 
         //Copy application files
         app: function() {
             var vm = this;
-            // this.fs.copyTpl(
-            //     this.templatePath('server.js'),
-            //     this.destinationPath('server.js')                
-            // );
+            this.fs.copyTpl(
+                this.templatePath('server.js'),
+                this.destinationPath('server.js')                
+            );
+
+            this.fs.copyTpl(
+                this.templatePath('config/express.js'),
+                this.destinationPath('config/express.js'), {
+                    // name: this.props.app.name
+                    name: 'wishlist'
+                }
+            );
+
+            this.fs.copyTpl(
+                this.templatePath('config/config.js'),
+                this.destinationPath('config/config.js'), {
+                    // name: this.props.app.name
+                    name: 'wishlist'
+                }
+            );
             
             _.each(this.props.raml, function(service) {
-
-                // console.log(util.inspect(service, false, null));
-
-                vm.fs.copyTpl(
-                    vm.templatePath('models/index.js'),
-                    vm.destinationPath('models/' + service.service + '.model.js'), {
-                        name: service.service,
-                        models: service.processedData.models
-                    }
-                );
+                _.each(service.processedData.models, function(model) {
+                    vm.fs.copyTpl(
+                        vm.templatePath('app/models/index.js'),
+                        vm.destinationPath('app/models/' + model.name + '.model.js'), {
+                            model: model
+                        }
+                    );
+                });
 
                 vm.fs.copyTpl(
-                    vm.templatePath('controllers/index.js'),
-                    vm.destinationPath('controllers/' + service.service + '.controller.js'), {
+                    vm.templatePath('app/controllers/index.js'),
+                    vm.destinationPath('app/controllers/' + service.service + '.controller.js'), {
                         name: service.service,
                         controllers: service.processedData.controllers
                     }
                 );
 
                 vm.fs.copyTpl(
-                    vm.templatePath('routes/index.js'),
-                    vm.destinationPath('routes/' + service.service + '.route.js'), {
+                    vm.templatePath('app/routes/index.js'),
+                    vm.destinationPath('app/routes/' + service.service + '.route.js'), {
                         name: service.service,
                         routes: service.processedData.routes
                     }
                 );
             });
-                        
-
-            // this.fs.copy(
-            //     this.templatePath('_models/_todo.js'),
-            //     this.destinationPath('models/todo.js')
-            // );
         },
 
         //Install Dependencies
